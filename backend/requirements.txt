@@ -1,0 +1,26 @@
+# Web Framework & Server
+fastapi
+uvicorn[standard]
+sse-starlette
+pydantic
+pydantic-settings
+python-dotenv
+httpx
+
+# LangChain & LangGraph (Agent & HITL)
+langgraph
+langgraph-checkpoint-postgres
+langchain-core
+langchain-groq
+
+# Database & Migrations
+sqlalchemy
+alembic
+psycopg2-binary
+asyncpg
+aiosqlite
+
+# Testing
+pytest
+pytest-asyncio
+
