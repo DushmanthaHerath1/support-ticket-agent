@@ -73,6 +73,7 @@ project_1/
 ## 📋 Step-by-Step Implementation Roadmap
 
 ### Phase 1: Environment & Project Setup
+
 - [x] Initialize directory layout (`backend/` and `frontend/`).
 - [x] Set up Python virtual environment (`.venv`) and prepare `requirements.txt` (`fastapi`, `uvicorn`, `langgraph`, `langgraph-checkpoint-postgres`, `langchain-core`, `langchain-groq`, `sqlalchemy`, `alembic`, `pydantic-settings`, `psycopg2-binary` / `aiosqlite`, `pytest`, `sse-starlette`).
 - [x] Create `backend/.env.example` and `.env` (`GROQ_API_KEY`, `DATABASE_URL`, `PORT`).
@@ -81,8 +82,9 @@ project_1/
 ---
 
 ### Phase 2: Database Layer, Models & Alembic Migrations
-- [ ] Configure `backend/app/db/session.py` with SQLAlchemy engine and session factory.
-- [ ] Initialize Alembic (`alembic init alembic`) and configure `alembic/env.py` to point to SQLAlchemy `Base.metadata`.
+
+- [x] Configure `backend/app/db/session.py` with SQLAlchemy engine and session factory.
+- [x] Initialize Alembic (`alembic init alembic`) and configure `alembic/env.py` to point to SQLAlchemy `Base.metadata`.
 - [ ] Define database models in `backend/app/db/models.py`:
   - [ ] `Customer` (`id`, `name`, `email`)
   - [ ] `Order` (`id`, `customer_id`, `item`, `amount`, `status`, `created_at`)
@@ -94,6 +96,7 @@ project_1/
 ---
 
 ### Phase 3: LangGraph Agent Core
+
 - [ ] Define `SupportState` in `backend/app/agent/state.py` extending `MessagesState` (`customer_id`, `order_context`).
 - [ ] Define `TicketResolution` structured output Pydantic schema in `backend/app/agent/schemas.py` with strict `Literal[...]` fields for category, sentiment, and resolution.
 - [ ] Implement tools in `backend/app/agent/tools.py`:
@@ -112,6 +115,7 @@ project_1/
 ---
 
 ### Phase 4: Backend API & Streaming Endpoints
+
 - [ ] Build `backend/app/config.py` for environment and settings management.
 - [ ] Implement `POST /chat` in `backend/app/routers/chat.py` with Server-Sent Events (SSE):
   - [ ] Emit `token` events during LLM generation.
@@ -127,6 +131,7 @@ project_1/
 ---
 
 ### Phase 5: Automated Testing & Verification
+
 - [ ] Create test fixtures with mocked LLM responses in `backend/tests/conftest.py`.
 - [ ] Implement unit tests in `backend/tests/test_agent.py`:
   - [ ] Test order lookup and eligibility checks.
@@ -138,6 +143,7 @@ project_1/
 ---
 
 ### Phase 6: Frontend Development (React + Tailwind)
+
 - [ ] Build API communication utilities:
   - [ ] `frontend/src/api/client.js` for REST endpoints.
   - [ ] `frontend/src/api/stream.js` for SSE handling.
@@ -155,6 +161,7 @@ project_1/
 ---
 
 ### Phase 7: Database Seeding & Integration Testing
+
 - [ ] Run database seeding to populate sample customers and orders.
 - [ ] Test end-to-end user journey:
   1. Customer inquires about order `#1001` -> Agent looks up order and explains status.
@@ -167,6 +174,7 @@ project_1/
 ---
 
 ### Phase 8: Polish, Demo Scenarios & Documentation
+
 - [ ] Verify UI responsive design, animations, and transitions.
 - [ ] Verify error states and network reconnects.
 - [ ] Capture demo screenshots/recordings of the HITL approval flow for portfolio and walkthrough.
