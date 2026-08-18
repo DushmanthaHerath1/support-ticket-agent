@@ -85,20 +85,20 @@ project_1/
 
 - [x] Configure `backend/app/db/session.py` with SQLAlchemy engine and session factory.
 - [x] Initialize Alembic (`alembic init alembic`) and configure `alembic/env.py` to point to SQLAlchemy `Base.metadata`.
-- [ ] Define database models in `backend/app/db/models.py`:
-  - [ ] `Customer` (`id`, `name`, `email`)
-  - [ ] `Order` (`id`, `customer_id`, `item`, `amount`, `status`, `created_at`)
-  - [ ] `Conversation` (`id`, `customer_id`, `created_at`)
-  - [ ] `RefundApproval` (`id`, `conversation_id`, `order_id`, `proposed_amount`, `reason`, `status`, `final_amount`, `decided_at`)
-  - [ ] `Ticket` (`id`, `conversation_id`, `category`, `sentiment`, `resolution`, `refund_amount`, `resolved_at`)
-- [ ] Create `backend/app/db/seed.py` to populate realistic fake customers and order histories for testing.
+- [x] Define database models in `backend/app/db/models.py`:
+  - [x] `Customer` (`id`, `name`, `email`)
+  - [x] `Order` (`id`, `customer_id`, `item`, `amount`, `status`, `created_at`)
+  - [x] `Conversation` (`id`, `customer_id`, `created_at`)
+  - [x] `RefundApproval` (`id`, `conversation_id`, `order_id`, `proposed_amount`, `reason`, `status`, `final_amount`, `decided_at`)
+  - [x] `Ticket` (`id`, `conversation_id`, `category`, `sentiment`, `resolution`, `refund_amount`, `resolved_at`)
+- [x] Create `backend/app/db/seed.py` to populate realistic fake customers and order histories for testing.
 
 ---
 
 ### Phase 3: LangGraph Agent Core
 
-- [ ] Define `SupportState` in `backend/app/agent/state.py` extending `MessagesState` (`customer_id`, `order_context`).
-- [ ] Define `TicketResolution` structured output Pydantic schema in `backend/app/agent/schemas.py` with strict `Literal[...]` fields for category, sentiment, and resolution.
+- [x] Define `SupportState` in `backend/app/agent/state.py` extending `MessagesState` (`customer_id`, `order_context`).
+- [x] Define `TicketResolution` structured output Pydantic schema in `backend/app/agent/schemas.py` with strict `Literal[...]` fields for category, sentiment, and resolution.
 - [ ] Implement tools in `backend/app/agent/tools.py`:
   - [ ] `lookup_order(order_id)`
   - [ ] `check_refund_eligibility(order_id)`
