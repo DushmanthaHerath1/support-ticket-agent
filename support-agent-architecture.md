@@ -71,17 +71,21 @@ class SupportState(MessagesState):
     order_context: dict | None  # cached order lookup, avoids re-fetching
 ```
 
+**LLM Strategy (Dual-Model Architecture):**
+- **ReAct Tool-Calling Core:** Groq `qwen/qwen3.6-27b` — ultra-fast function calling loop and order status/eligibility/refund policy evaluation.
+- **Conversational & Structured Output Engine:** Google `gemini-2.5-flash` — conversation summarization, clean customer-facing streaming responses without reasoning tokens, and strict `TicketResolution` structured extraction.
+
 **Nodes:**
-- `tool_calling_llm` — your model bound to `[lookup_order, check_refund_eligibility, issue_refund]`
-- `tools` — `ToolNode`, same as your tool-call notebook. `issue_refund` is wrapped in HITL middleware so calling it triggers `interrupt()` and the graph checkpoints there.
-- `summarize` — runs before `tool_calling_llm` if message history exceeds your token threshold (same pattern as your middleware notebook).
-- `structured_output` — a final node that runs once the conversation reaches a resolution (e.g. triggered by a `resolve` tool or a "is this ticket done?" check), forcing a Pydantic-schema response that gets written to the `tickets` table.
+- `tool_calling_llm` — Groq `qwen/qwen3.6-27b` bound to `[lookup_order, check_refund_eligibility, issue_refund, resolve_ticket]`
+- `tools` — `ToolNode` executing queries. `issue_refund` is wrapped in HITL middleware so calling it triggers `interrupt()` and the graph checkpoints there.
+- `summarize` — Google `gemini-2.5-flash` runs before `tool_calling_llm` if message history exceeds token threshold.
+- `structured_output` — Google `gemini-2.5-flash` final node that runs when `resolve_ticket` is triggered, generating strict `TicketResolution` Pydantic models for the `tickets` table and emitting clean customer concluding text.
 
 **Edges:**
 ```
 START → summarize → tool_calling_llm
 tool_calling_llm → (tools_condition) → tools | structured_output | END
-tools → tool_calling_llm   # ReAct loop, same as your notebook
+tools → tool_calling_llm   # ReAct loop
 ```
 
 **Tools to write:**

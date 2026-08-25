@@ -1,7 +1,7 @@
 # Project Roadmap & Implementation To-Do List
 
 **Project:** AI Customer Support & Refund Agent with Human-In-The-Loop (HITL)  
-**Stack:** FastAPI + LangGraph + PostgreSQL / SQLite + React (Vite) + Tailwind CSS + Groq / LLaMA
+**Stack:** FastAPI + LangGraph + PostgreSQL / SQLite + React (Vite) + Tailwind CSS + Dual LLM (Groq Qwen 3.6-27B + Google Gemini 2.5 Flash)
 
 ---
 
@@ -99,16 +99,16 @@ project_1/
 
 - [x] Define `SupportState` in `backend/app/agent/state.py` extending `MessagesState` (`customer_id`, `order_context`).
 - [x] Define `TicketResolution` structured output Pydantic schema in `backend/app/agent/schemas.py` with strict `Literal[...]` fields for category, sentiment, and resolution.
-- [ ] Implement tools in `backend/app/agent/tools.py`:
-  - [ ] `lookup_order(order_id)`
-  - [ ] `check_refund_eligibility(order_id)`
-  - [ ] `issue_refund(order_id, amount, reason)` with native `interrupt()` for Human-In-The-Loop.
-  - [ ] `resolve_ticket(category, sentiment, resolution, refund_amount)` to trigger structured logging.
+- [x] Implement tools in `backend/app/agent/tools.py`:
+  - [x] `lookup_order(order_id)`
+  - [x] `check_refund_eligibility(order_id)`
+  - [x] `issue_refund(order_id, amount, reason)` with native `interrupt()` for Human-In-The-Loop.
+  - [x] `resolve_ticket(category, sentiment, resolution, refund_amount)` to trigger structured logging.
 - [ ] Construct the StateGraph in `backend/app/agent/graph.py`:
-  - [ ] `summarize` node (token threshold check & message trimming)
-  - [ ] `tool_calling_llm` node (Groq `llama-4-scout-17b-16e-instruct` / fast tool-calling model)
-  - [ ] `tools` node (`ToolNode`)
-  - [ ] `structured_output` node
+  - [ ] `summarize` node (Gemini 2.5 Flash token threshold check & conversation summarization)
+  - [ ] `tool_calling_llm` node (Groq `qwen/qwen3.6-27b` fast ReAct tool-calling core)
+  - [ ] `tools` node (`ToolNode` executing order queries & HITL pause)
+  - [ ] `structured_output` node (Gemini 2.5 Flash strict `TicketResolution` logging & clean customer responses)
   - [ ] Configure checkpointer (Memory or Postgres checkpointer keyed by `thread_id` == `conversation_id`).
   - [ ] Wire conditional edges: ReAct loop, HITL pause, and `resolve_ticket` routing.
 
@@ -179,3 +179,11 @@ project_1/
 - [ ] Verify error states and network reconnects.
 - [ ] Capture demo screenshots/recordings of the HITL approval flow for portfolio and walkthrough.
 - [ ] Update documentation and walkthrough notes.
+
+---
+
+### 🔧 Technical Debt & Backlog (Discovered During Testing)
+
+- [ ] **`/chat` endpoint: `get_or_create_conversation` step** — On the very first message of a brand new chat, check whether a `Conversation` row already exists in the DB for the given `conversation_id`. If not, create one. This step must live inside `/chat` because that is the only place `customer_id` is known (it comes from the request). Without this, a real user's first message would crash the moment the agent tries to propose a refund (FK violation: `refund_approvals.conversation_id` references `conversations.id`, but no row was ever inserted).
+
+  > **Root cause context:** LangGraph's checkpointer and the `conversations` DB table are two separate systems that share the same `conversation_id` but are not automatically kept in sync. The checkpointer stores graph *state*; the `conversations` table stores conversation *metadata*. Anytime the agent writes a child record (`refund_approvals`, `tickets`) that FKs back to `conversations`, the parent row must already exist.

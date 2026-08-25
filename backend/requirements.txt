@@ -9,9 +9,11 @@ httpx
 
 # LangChain & LangGraph (Agent & HITL)
 langgraph
+langchain   
 langgraph-checkpoint-postgres
 langchain-core
 langchain-groq
+langchain-google-genai
 
 # Database & Migrations
 sqlalchemy
@@ -23,4 +25,3 @@ aiosqlite
 # Testing
 pytest
 pytest-asyncio
-

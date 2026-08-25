@@ -19,12 +19,16 @@ from app.db.models import (
     ResolutionType,
 )
 
+
 async def reset_database():
+    """Drops and recreates every table. This IS the 'remove existing, create fresh' step —
+    run this file again any time you want a clean slate; old data is not preserved."""
     async with engine.begin() as conn:
-        print("🗑️ Dropping existing tables...")
+        print("Dropping existing tables...")
         await conn.run_sync(Base.metadata.drop_all)
-        print("✨ Creating fresh tables with updated schema...")
+        print("Creating fresh tables with updated schema...")
         await conn.run_sync(Base.metadata.create_all)
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -33,15 +37,9 @@ def _now() -> datetime:
 async def seed_data():
     """Populates the database with realistic sample customers, orders, and test scenarios."""
     await reset_database()
-    print("🌱 Starting database seeding...")
+    print("Starting database seeding...")
 
     async with async_session_factory() as session:
-        # Check if data already exists
-        existing_customers = await session.execute(select(Customer))
-        if existing_customers.scalars().first():
-            print("⚠️  Data already exists in database. Skipping duplicate seed.")
-            return
-
         now = _now()
 
         # ---------------------------------------------------------
@@ -78,7 +76,6 @@ async def seed_data():
         # ---------------------------------------------------------
         # 2. Orders with diverse statuses and test cases
         # ---------------------------------------------------------
-        # Case A: PENDING order (Recent, eligible for instant refund / HITL test)
         order_1001 = Order(
             id="ORD-1001",
             customer_id=alice.id,
@@ -87,8 +84,6 @@ async def seed_data():
             status=OrderStatus.PENDING,
             created_at=now - timedelta(hours=2),
         )
-
-        # Case B: DELIVERED order (Delivered 10 days ago)
         order_1002 = Order(
             id="ORD-1002",
             customer_id=alice.id,
@@ -97,8 +92,6 @@ async def seed_data():
             status=OrderStatus.DELIVERED,
             created_at=now - timedelta(days=10),
         )
-
-        # Case C: PROCESSING small item (Low amount test)
         order_1003 = Order(
             id="ORD-1003",
             customer_id=bob.id,
@@ -107,8 +100,6 @@ async def seed_data():
             status=OrderStatus.PROCESSING,
             created_at=now - timedelta(hours=12),
         )
-
-        # Case D: SHIPPED order (High value, in transit - tests defect escalation rule)
         order_1004 = Order(
             id="ORD-1004",
             customer_id=charlie.id,
@@ -117,8 +108,6 @@ async def seed_data():
             status=OrderStatus.SHIPPED,
             created_at=now - timedelta(days=2),
         )
-
-        # Case E: CANCELLED order (Already resolved historical order)
         order_1005 = Order(
             id="ORD-1005",
             customer_id=diana.id,
@@ -134,7 +123,6 @@ async def seed_data():
         # ---------------------------------------------------------
         # 3. Seed Conversations, Pending Approval, and Resolved Ticket
         # ---------------------------------------------------------
-        # Seed 1: A historical resolved conversation + ticket for Diana (Populates Screen C: Audit Log)
         conv_diana = Conversation(
             id="thread_diana_sample_01",
             customer_id=diana.id,
@@ -156,7 +144,6 @@ async def seed_data():
         )
         session.add(ticket_diana)
 
-        # Seed 2: A pending refund approval for Bob (Populates Screen B: Manager Pending Approvals)
         conv_bob = Conversation(
             id="thread_bob_sample_02",
             customer_id=bob.id,
@@ -181,7 +168,7 @@ async def seed_data():
 
         await session.commit()
 
-        print("✅ Database seeding completed successfully!")
+        print("Database seeding completed successfully!")
         print("   - 4 Customers created (Alice, Bob, Charlie, Diana)")
         print("   - 5 Orders created (ORD-1001 to ORD-1005 with varied statuses)")
         print("   - 1 Pending Approval seeded (for testing Manager Dashboard)")

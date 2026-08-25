@@ -1,10 +1,17 @@
-# backend/app/agent/schemas.py
+from decimal import Decimal
 from pydantic import BaseModel, Field, model_validator
+
 from app.db.models import TicketCategory, SentimentType, ResolutionType
 
 
 class TicketResolution(BaseModel):
-    """Structured resolution summary extracted when a support ticket is completed."""
+    """Structured resolution summary for a support ticket.
+
+    Not currently instantiated by resolve_ticket (that tool takes flat typed
+    arguments instead) — this model exists for future reuse, e.g. as the
+    response model for GET /tickets. Keep it correct even while unused, so
+    it's trustworthy whenever something does start relying on it.
+    """
 
     category: TicketCategory = Field(
         description="The primary category of the customer request."
@@ -15,7 +22,7 @@ class TicketResolution(BaseModel):
     resolution: ResolutionType = Field(
         description="The final outcome/action taken for this customer inquiry."
     )
-    refund_amount: float | None = Field(
+    refund_amount: Decimal | None = Field(
         default=None,
         description="The final refund amount issued in USD, or None if no refund was granted.",
     )
@@ -25,13 +32,12 @@ class TicketResolution(BaseModel):
 
     @model_validator(mode="after")
     def validate_refund_consistency(self) -> "TicketResolution":
-        if self.resolution == ResolutionType.REFUNDED and (
+        if self.resolution == ResolutionType.REFUND_ISSUED and (
             self.refund_amount is None or self.refund_amount <= 0
         ):
             raise ValueError(
-                "refund_amount must be greater than 0 when resolution is REFUNDED"
+                "refund_amount must be greater than 0 when resolution is REFUND_ISSUED"
             )
-        if self.resolution != ResolutionType.REFUNDED:
-            # Clean up refund amount if resolution wasn't a refund
+        if self.resolution != ResolutionType.REFUND_ISSUED:
             self.refund_amount = None
         return self

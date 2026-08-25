@@ -6,13 +6,15 @@ FastAPI + LangGraph backend for the AI support & refund agent (HITL). Full archi
 - FastAPI + Uvicorn, SSE for streaming (`text/event-stream`)
 - LangGraph + LangChain Core + Pydantic v2 for the agent
 - PostgreSQL via SQLAlchemy; `langgraph-checkpoint-postgres` for agent state/interrupts
-- LLM: Groq, model `meta-llama/llama-4-scout-17b-16e-instruct` (non-reasoning, tool-calling capable, fast). Do not switch to `qwen/qwen3.6-27b` or any Groq reasoning model for the tool-calling node — they burn hundreds of tokens on hidden reasoning before every tool call and make streaming feel sluggish. If more judgment is ever needed, prefer `openai/gpt-oss-20b` with reasoning effort set low over a full reasoning model.
+- LLM: Dual-Model Setup:
+  - **Tool-Calling Brain:** Groq `qwen/qwen3.6-27b` (fast ReAct loop and tool-calling execution)
+  - **Conversational & Structured Output:** Google `gemini-2.5-flash` (summarization, structured ticket resolution audit logging, clean customer-facing streaming responses)
 
 ## Setup
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # fill in GROQ_API_KEY, DATABASE_URL
+cp .env.example .env   # fill in GROQ_API_KEY, GEMINI_API_KEY, DATABASE_URL
 alembic upgrade head    # or equivalent migration command
 uvicorn app.main:app --reload
 ```
@@ -59,7 +61,7 @@ Not implemented in v1 by design — `/approvals/*` is intentionally open for thi
 pytest                      # unit tests
 pytest tests/test_agent.py  # graph behavior: tool calls, interrupt/resume, structured output exit
 ```
-When testing the agent, mock the Groq client rather than hitting the live API — keep tests deterministic and fast.
+When testing the agent, mock the LLM clients (Groq & Google GenAI) rather than hitting live APIs — keep tests deterministic and fast.
 
 ## Things to flag, not silently fix
 If a change would alter the API contract above, the DB schema, or the graph's node/edge structure, call it out explicitly rather than just implementing it — these are the pieces the frontend and the architecture doc both depend on.

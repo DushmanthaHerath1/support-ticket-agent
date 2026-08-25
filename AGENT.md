@@ -10,16 +10,18 @@ This file is the source of truth for any coding agent working in this repository
 - **Agent orchestration:** LangGraph + LangChain Core + Pydantic v2
 - **Frontend:** React + Vite + Tailwind
 - **Database:** PostgreSQL via SQLAlchemy, `langgraph-checkpoint-postgres` for agent state/interrupts
-- **LLM:** Groq, `meta-llama/llama-4-scout-17b-16e-instruct` — non-reasoning, fast, tool-calling capable
+- **LLM:** Dual-Model Architecture:
+  - **Tool-Calling Brain:** Groq `qwen/qwen3.6-27b` — ultra-fast ReAct loop and tool execution
+  - **Conversational & Structured Output Engine:** Google `gemini-2.5-flash` — conversation summarization, clean user responses without `<think>` artifacts, and strict `TicketResolution` structured extraction
 - **Package managers:** `uv` (backend), `pnpm` (frontend)
 
-**Rule:** The stack is locked unless explicitly changed by the user. Do not propose alternatives without a stated, structural reason. In particular: do not swap in a reasoning-heavy Groq model (`qwen/qwen3.6-27b` or similar) for the tool-calling node — it burns hundreds of tokens on hidden reasoning per turn and makes the streaming demo feel sluggish. This has already been evaluated; don't re-litigate it.
+**Rule:** The stack is locked unless explicitly changed by the user. Groq handles fast tool execution while Gemini 2.5 Flash handles summarization, user-facing dialogue generation, and structured audit output.
 
 ## 2. Dependency Policy
 
 **Default: write it yourself.** Reach for a library only when the alternative would be non-trivial, error-prone, or reinvention of a complex standard. Every dependency is a liability.
 
-- **OK to add (backend):** `langgraph`, `langchain`, `langchain-groq`, `sqlalchemy`, `psycopg`, `langgraph-checkpoint-postgres`, `pydantic`, `alembic`, `sse-starlette` — these do genuinely hard things (agent orchestration, SQL, streaming protocol, migrations).
+- **OK to add (backend):** `langgraph`, `langchain`, `langchain-groq`, `langchain-google-genai`, `sqlalchemy`, `psycopg`, `langgraph-checkpoint-postgres`, `pydantic`, `alembic`, `sse-starlette` — these do genuinely hard things (agent orchestration, SQL, streaming protocol, migrations).
 - **OK to add (frontend):** nothing beyond what's already in `frontend/AGENTS.md`'s stack. No `redux`/`zustand`/similar state library, no `react-router` — this is a two-screen app and server state (conversations, approvals) already lives in Postgres, not the client.
 - **Not OK to add:** helper libraries for a few lines of standard logic, "nicer API" wrappers over `fetch` or `EventSource`, generic UI component libraries before there's a second consumer of the abstraction.
 
@@ -30,10 +32,10 @@ Before adding a runtime dependency, state in the commit/PR:
 
 ## 3. Configuration & Environment
 
-- Backend: a single `app/config.py` loads and validates all env vars (`GROQ_API_KEY`, `DATABASE_URL`) — no `os.getenv` scattered through route or agent code.
+- Backend: a single `app/config.py` loads and validates all env vars (`GROQ_API_KEY`, `GEMINI_API_KEY`, `DATABASE_URL`) — no `os.getenv` scattered through route or agent code.
 - Frontend: a single `src/config.js` (or Vite's `import.meta.env` accessed only there) — no `import.meta.env` scattered through components.
 - Fail fast on startup if required config is missing. No silent fallbacks to empty strings or hardcoded defaults for secrets.
-- Never commit secrets, `.env` files, or the `GROQ_API_KEY`. `.env.example` (with blank values) is fine to commit.
+- Never commit secrets, `.env` files, or API keys. `.env.example` (with blank values) is fine to commit.
 
 ## 4. Code Style & Philosophy
 
