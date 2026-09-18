@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+import uuid
 from typing import Any
 
 from langchain_core.tools import tool
@@ -175,62 +176,77 @@ async def issue_refund(
                 "message": f"Refund amount ${amount:.2f} is invalid. Maximum refundable amount is ${float(order.amount):.2f}.",
             }
 
-    # Trigger the LangGraph HITL interrupt. Execution pauses here; state (including
-    # conversation_id) is checkpointed until a manager resumes it via Command(resume=...).
+    # Create a PENDING approval record BEFORE pausing, so the manager
+    # dashboard can see it immediately while the graph is frozen.
+    async with async_session_factory() as session:
+        approval = RefundApproval(
+            conversation_id=conversation_id,
+            order_id=clean_order_id,
+            proposed_amount=Decimal(str(amount)),
+            reason=reason,
+            status=RefundStatus.PENDING,
+        )
+        session.add(approval)
+        await session.commit()
+        approval_id = str(approval.id)
+
+    # Pause execution here. The approval_id goes into the interrupt payload
     decision = interrupt(
         {
             "action": "refund_approval",
-            "order_id": clean_order_id,
+            "approval_id": approval_id,
+            "order_id": order_id,
             "proposed_amount": amount,
             "reason": reason,
             "conversation_id": conversation_id,
-            "description": f"Manager approval requested to refund ${amount:.2f} for Order #{clean_order_id}.",
+            "description": f"Manager approval requested to refund ${amount:.2f} for order #{clean_order_id}.",
         }
     )
 
-    # Expected decision format: {"approved": bool, "final_amount": float, "notes": str}
+    #Execution resumes here after the manager acts.
     is_approved = bool(decision.get("approved", False))
     final_amount = float(decision.get("final_amount", amount))
-    notes = decision.get("notes", "No manager notes provided.")
+    notes = decision.get("notes", "No notes provided.")
 
+    #update the existing PENDING record with the manager's decision.
     async with async_session_factory() as session:
-        result = await session.execute(select(Order).where(Order.id == clean_order_id))
-        order = result.scalar_one_or_none()
-
-        approval_record = RefundApproval(
-            conversation_id=conversation_id,  # plain str — matches Conversation.id, no UUID parsing
-            order_id=order.id,
-            proposed_amount=Decimal(str(amount)),
-            final_amount=Decimal(str(final_amount)) if is_approved else None,
-            reason=f"{reason} (Manager Notes: {notes})",
-            status=RefundStatus.APPROVED if is_approved else RefundStatus.REJECTED,
-            decided_at=datetime.now(timezone.utc),
+        result = await session.execute(
+            select(RefundApproval).where(RefundApproval.id == uuid.UUID(approval_id))
         )
-        session.add(approval_record)
+        approval = result.scalar_one()
+        approval.status = RefundStatus.APPROVED if is_approved else RefundStatus.REJECTED
+        approval.final_amount = Decimal(str(final_amount)) if is_approved else None
+        approval.reason = f"{reason} (Manager Notes: {notes})"
+        approval.decided_at = datetime.now(timezone.utc)
 
         if is_approved:
+            order_result = await session.execute(
+                select(Order).where(Order.id == clean_order_id)
+            )
+            order = order_result.scalar_one()
             order.status = OrderStatus.CANCELLED
-            await session.commit()
-            return {
-                "success": True,
-                "status": "APPROVED",
-                "final_amount": final_amount,
-                "message": (
-                    f"Refund of ${final_amount:.2f} for Order #{clean_order_id} has been APPROVED by the manager "
-                    f"and processed successfully. The order is now CANCELLED."
-                ),
-            }
-        else:
-            await session.commit()
-            return {
-                "success": False,
-                "status": "REJECTED",
-                "message": (
-                    f"Refund request for Order #{clean_order_id} was REJECTED by the manager. "
-                    f"Reason: {notes}"
-                ),
-            }
 
+        await session.commit()
+
+    if is_approved:
+        return{
+            "success": True,
+            "status": "APPROVED",
+            "final_amount": final_amount,
+            "message": (
+                f"Refund of ${final_amount:.2f} for Order #{clean_order_id} has been APPROVED by the manager "
+                f"and processed successfully. The order is now CANCELLED."
+            ),
+        }
+    else:
+        return{
+            "success": False,
+            "status": "REJECTED",
+            "message": (
+                f"Refund request for Order #{clean_order_id} was REJECTED by the manager. "
+                f"Reason: {notes}" 
+            ),
+        }
 
 @tool
 async def resolve_ticket(

@@ -104,29 +104,31 @@ project_1/
   - [x] `check_refund_eligibility(order_id)`
   - [x] `issue_refund(order_id, amount, reason)` with native `interrupt()` for Human-In-The-Loop.
   - [x] `resolve_ticket(category, sentiment, resolution, refund_amount)` to trigger structured logging.
-- [ ] Construct the StateGraph in `backend/app/agent/graph.py`:
-  - [ ] `summarize` node (Gemini 2.5 Flash token threshold check & conversation summarization)
-  - [ ] `tool_calling_llm` node (Groq `qwen/qwen3.6-27b` fast ReAct tool-calling core)
-  - [ ] `tools` node (`ToolNode` executing order queries & HITL pause)
-  - [ ] `structured_output` node (Gemini 2.5 Flash strict `TicketResolution` logging & clean customer responses)
-  - [ ] Configure checkpointer (Memory or Postgres checkpointer keyed by `thread_id` == `conversation_id`).
-  - [ ] Wire conditional edges: ReAct loop, HITL pause, and `resolve_ticket` routing.
+- [x] Construct the StateGraph in `backend/app/agent/graph.py`:
+  - [x] `summarize` node — uses Qwen (Groq) for summarization; triggers when `len(messages) > 6`.
+  - [x] `tool_calling_llm` node — Groq `qwen/qwen3.6-27b` ReAct core.
+  - [x] `tools` node — `ToolNode` executing order queries & HITL pause via `interrupt()`.
+  - [x] ~~`structured_output` node~~ — **Intentionally removed.** `resolve_ticket` already receives category, sentiment, resolution, and refund_amount as typed flat arguments matching `TicketResolution` exactly. Invoking a second LLM pass to re-extract the same data would waste tokens with zero gain. Data is written to DB directly inside `resolve_ticket`.
+  - [x] Configure checkpointer — `AsyncPostgresSaver` wired via lifespan in `main.py`, keyed by `thread_id`.
+  - [x] Wire conditional edges: `should_summarize` entry point, ReAct loop, and HITL pause.
+
+> **Note — Gemini LLM:** `ChatGoogleGenerativeAI` is temporarily detached from the graph. The initialization code is kept as a comment in `graph.py` for future use (e.g., routing summarization or structured tasks to a separate provider). Qwen (Groq) handles all tasks for now.
 
 ---
 
 ### Phase 4: Backend API & Streaming Endpoints
 
-- [ ] Build `backend/app/config.py` for environment and settings management.
-- [ ] Implement `POST /chat` in `backend/app/routers/chat.py` with Server-Sent Events (SSE):
-  - [ ] Emit `token` events during LLM generation.
-  - [ ] Emit `tool_start` events when tools are called.
-  - [ ] Emit `awaiting_approval` event when graph is paused at HITL interrupt.
-  - [ ] Emit `end` event when turn completes.
-- [ ] Implement `GET /conversations/{id}` for loading historical messages on reload.
-- [ ] Implement `GET /approvals/pending` in `backend/app/routers/approvals.py` to list active refund approval requests.
-- [ ] Implement `POST /approvals/{id}/action` (Approve / Reject / Edit) using `Command(resume=...)` to resume the graph.
-- [ ] Implement `GET /tickets` in `backend/app/routers/tickets.py` to query resolved tickets audit log.
-- [ ] Mount routers and configure CORS in `backend/app/main.py`.
+- [x] Build `backend/app/config.py` for environment and settings management.
+- [x] Implement `POST /chat` in `backend/app/routers/chat.py` with Server-Sent Events (SSE):
+  - [x] Emit `token` events during LLM generation.
+  - [x] Emit `tool_start` events when tools are called.
+  - [x] Emit `awaiting_approval` event when graph is paused at HITL interrupt.
+  - [x] Emit `end` event when turn completes.
+- [x] Implement `GET /conversations/{id}` for loading historical messages on reload.
+- [x] Implement `GET /approvals/pending` in `backend/app/routers/approvals.py` to list active refund approval requests.
+- [x] Implement `POST /approvals/{id}/action` (Approve / Reject / Edit) using `Command(resume=...)` to resume the graph.
+- [x] Implement `GET /tickets` in `backend/app/routers/tickets.py` to query resolved tickets audit log.
+- [x] Mount routers and configure CORS in `backend/app/main.py`.
 
 ---
 
@@ -143,6 +145,8 @@ project_1/
 ---
 
 ### Phase 6: Frontend Development (React + Tailwind)
+
+> **Scaffolding complete:** Vite + React 19 + Tailwind CSS v4 initialized and running. `main.jsx`, `index.css`, `vite.config.js`, `.env` all in place. `App.jsx` is currently a placeholder — the real screens below are not built yet.
 
 - [ ] Build API communication utilities:
   - [ ] `frontend/src/api/client.js` for REST endpoints.
@@ -162,7 +166,8 @@ project_1/
 
 ### Phase 7: Database Seeding & Integration Testing
 
-- [ ] Run database seeding to populate sample customers and orders.
+- [x] Write `backend/app/db/seed.py` — seeding script complete (4 customers, 5 orders, 1 pending approval, 1 resolved ticket).
+- [ ] Run database seeding against real database to populate sample customers and orders.
 - [ ] Test end-to-end user journey:
   1. Customer inquires about order `#1001` -> Agent looks up order and explains status.
   2. Customer asks for refund -> Agent checks eligibility and calls `issue_refund`.
