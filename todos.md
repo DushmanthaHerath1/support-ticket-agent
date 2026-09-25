@@ -167,7 +167,7 @@ project_1/
 ### Phase 7: Database Seeding & Integration Testing
 
 - [x] Write `backend/app/db/seed.py` — seeding script complete (4 customers, 5 orders, 1 pending approval, 1 resolved ticket).
-- [ ] Run database seeding against real database to populate sample customers and orders.
+- [x] Run database seeding against real database to populate sample customers and orders.
 - [ ] Test end-to-end user journey:
   1. Customer inquires about order `#1001` -> Agent looks up order and explains status.
   2. Customer asks for refund -> Agent checks eligibility and calls `issue_refund`.

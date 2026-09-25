@@ -26,7 +26,7 @@ model_tools=[lookup_order, check_refund_eligibility, issue_refund, resolve_ticke
 
 #initialize llms
 qwen_llm=ChatGroq(
-    model="qwen/qwen3.6-27b",
+    model="qwen/qwen3.8-27b",
     groq_api_key=settings.GROQ_API_KEY,
     temperature=0.0,
     reasoning_effort="none"

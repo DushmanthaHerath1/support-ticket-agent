@@ -24,7 +24,7 @@ class PendingApprovalResponse(BaseModel):
     item_name: str
     proposed_amount: Decimal
     reason: str
-    created_at: datetime
+    created_at: datetime | None
 
 class ApprovalAction(BaseModel):
     action: Literal["approve", "reject"]

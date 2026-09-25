@@ -38,6 +38,12 @@ async def chat(request: Request, body: ChatRequest) -> StreamingResponse:
             }
         }
 
+        # Guard: check if this conversation is already paused at a HITL interrupt.
+        pre_state = await graph.aget_state(config) 
+        if pre_state.next:
+            yield f"event: awaiting_approval\ndata: {json.dumps({'status': 'waiting_for_manager'})}\n\n"
+            return
+
         input_data = {
             "messages": [HumanMessage(content=body.message)],
             "customer_id": body.customer_id,
