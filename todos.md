@@ -136,10 +136,10 @@ project_1/
 
 - [ ] Create test fixtures with mocked LLM responses in `backend/tests/conftest.py`.
 - [ ] Implement unit tests in `backend/tests/test_agent.py`:
-  - [ ] Test order lookup and eligibility checks.
-  - [ ] Test HITL interrupt trigger on `issue_refund`.
-  - [ ] Test graph resume with approval / rejection / amount edit.
-  - [ ] Test structured output exit via `resolve_ticket`.
+  - [x] Test order lookup and eligibility checks.
+  - [x] Test HITL interrupt trigger on `issue_refund`.
+  - [x] Test graph resume with approval / rejection / amount edit.
+  - [x] Test structured output exit via `resolve_ticket`.
 - [ ] Implement API route tests in `backend/tests/test_api.py`.
 
 ---
@@ -149,10 +149,10 @@ project_1/
 > **Scaffolding complete:** Vite + React 19 + Tailwind CSS v4 initialized and running. `main.jsx`, `index.css`, `vite.config.js`, `.env` all in place. `App.jsx` is currently a placeholder — the real screens below are not built yet.
 
 - [ ] Build API communication utilities:
-  - [ ] `frontend/src/api/client.js` for REST endpoints.
-  - [ ] `frontend/src/api/stream.js` for SSE handling.
+  - [x] `frontend/src/api/client.js` for REST endpoints.
+  - [x] `frontend/src/api/stream.js` for SSE handling.
 - [ ] Develop reusable UI components:
-  - [ ] `Navbar.jsx` with tabs for Chat, Pending Approvals, and Resolved Tickets.
+  - [ ] `Navbar.jsx` with tabs for Chat, Pending Approvals, and Resolved Tickets (only for Approvals.jsx, Tickets.jsx).
   - [ ] `MessageBubble.jsx` for user and assistant messages with markdown support.
   - [ ] `StatusIndicator.jsx` for live tool progress updates.
   - [ ] `ApprovalBanner.jsx` when chat is waiting on manager approval.
@@ -191,4 +191,4 @@ project_1/
 
 - [ ] **`/chat` endpoint: `get_or_create_conversation` step** — On the very first message of a brand new chat, check whether a `Conversation` row already exists in the DB for the given `conversation_id`. If not, create one. This step must live inside `/chat` because that is the only place `customer_id` is known (it comes from the request). Without this, a real user's first message would crash the moment the agent tries to propose a refund (FK violation: `refund_approvals.conversation_id` references `conversations.id`, but no row was ever inserted).
 
-  > **Root cause context:** LangGraph's checkpointer and the `conversations` DB table are two separate systems that share the same `conversation_id` but are not automatically kept in sync. The checkpointer stores graph *state*; the `conversations` table stores conversation *metadata*. Anytime the agent writes a child record (`refund_approvals`, `tickets`) that FKs back to `conversations`, the parent row must already exist.
+  > **Root cause context:** LangGraph's checkpointer and the `conversations` DB table are two separate systems that share the same `conversation_id` but are not automatically kept in sync. The checkpointer stores graph _state_; the `conversations` table stores conversation _metadata_. Anytime the agent writes a child record (`refund_approvals`, `tickets`) that FKs back to `conversations`, the parent row must already exist.
