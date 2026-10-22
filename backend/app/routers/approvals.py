@@ -20,23 +20,22 @@ async def get_pending_approvals() -> list[PendingApprovalResponse]:
     """
         Returns all refund requests currently awaiting manager action.
     """
-
     async with async_session_factory() as session:
         result = await session.execute(
-            select(RefundApproval, Order.item_name)
+            select(RefundApproval, Order.item_name, Order.amount.label("order_amount"))
             .join(Order, RefundApproval.order_id == Order.id)
             .where(RefundApproval.status == RefundStatus.PENDING)
             .order_by(RefundApproval.decided_at.asc().nulls_first())
         )
-
         rows = result.all()
 
-    return[
+    return [
         PendingApprovalResponse(
             id=str(row.RefundApproval.id), 
             conversation_id=row.RefundApproval.conversation_id,
             order_id=row.RefundApproval.order_id,
             item_name=row.item_name,
+            order_amount=row.order_amount,             # <-- Pass order_amount here
             proposed_amount=row.RefundApproval.proposed_amount,
             reason=row.RefundApproval.reason,
             created_at=row.RefundApproval.decided_at
@@ -45,36 +44,42 @@ async def get_pending_approvals() -> list[PendingApprovalResponse]:
     ]
 
 @router.post("/{approval_id}/action")
-async def process_approval(approval_id: str, body: ApprovalAction, request:Request) -> dict:
+async def process_approval(approval_id: str, body: ApprovalAction, request: Request) -> dict:
     """
         Manager approves or rejects a pending refund request.
-        Resumes the pause LangGraph HITL interrupt wi th the decision.
-
+        Resumes the paused LangGraph HITL interrupt with the decision.
     """
     graph = request.app.state.graph
+    is_approve = body.action == "approve"             # <-- Defined upfront
 
     async with async_session_factory() as session:
         result = await session.execute(
-            select(RefundApproval).where(RefundApproval.id ==uuid.UUID(approval_id))
+            select(RefundApproval).where(RefundApproval.id == uuid.UUID(approval_id))
         )
         approval = result.scalar_one_or_none()
 
         if not approval:
-            raise HTTPException(status_code=404, detail=f"Approval '{approval_id}' not found.",)
+            raise HTTPException(status_code=404, detail=f"Approval '{approval_id}' not found.")
 
         if approval.status != RefundStatus.PENDING:
             raise HTTPException(
                 status_code=409,
                 detail=f"Already decided - current status: {approval.status.value}",
-
             )
-        
+
+        # Validate refund amount doesn't exceed original order total
+        order = await session.get(Order, approval.order_id)
+        if is_approve and body.final_amount and order:
+            if float(body.final_amount) > float(order.amount):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Refund amount ${body.final_amount:.2f} exceeds original order total of ${float(order.amount):.2f}."
+                )
+
         conversation_id = approval.conversation_id
         conv = await session.get(Conversation, approval.conversation_id)
         customer_id = str(conv.customer_id)
         proposed_amount = float(approval.proposed_amount)
-
-    is_approve = body.action == "approve"
 
     resume_payload = {
         "approved": is_approve,
