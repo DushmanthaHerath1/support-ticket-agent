@@ -148,17 +148,16 @@ project_1/
 
 > **Scaffolding complete:** Vite + React 19 + Tailwind CSS v4 initialized and running. `main.jsx`, `index.css`, `vite.config.js`, `.env` all in place. `App.jsx` is currently a placeholder — the real screens below are not built yet.
 
-- [ ] Build API communication utilities:
+- [x] Build API communication utilities:
   - [x] `frontend/src/api/client.js` for REST endpoints.
   - [x] `frontend/src/api/stream.js` for SSE handling.
+- [x] Set up routing: `App.jsx` with React Router + `AdminLayout.jsx` with nested admin routes (`/admin/approvals`, `/admin/tickets`).
 - [ ] Develop reusable UI components:
-  - [ ] `Navbar.jsx` with tabs for Chat, Pending Approvals, and Resolved Tickets (only for Approvals.jsx, Tickets.jsx).
   - [ ] `MessageBubble.jsx` for user and assistant messages with markdown support.
   - [ ] `StatusIndicator.jsx` for live tool progress updates.
-  - [ ] `ApprovalBanner.jsx` when chat is waiting on manager approval.
   - [ ] `ApprovalCard.jsx` with Approve, Reject, and Edit amount modal/input.
 - [ ] Build screen views:
-  - [ ] **Screen A (`Chat.jsx`)**: Token streaming, status indicators, approval banner, conversation switching.
+  - [x] **Screen A (`Chat.jsx`)**: Token streaming, approval banner, conversation history restore (localStorage). Basic functional version working.
   - [ ] **Screen B (`Approvals.jsx`)**: Manager pending refund list with one-click Approve/Reject/Edit action handling.
   - [ ] **Screen C (`Tickets.jsx`)**: Structured audit log table showing sentiment, resolution, and amounts.
 
@@ -189,6 +188,4 @@ project_1/
 
 ### 🔧 Technical Debt & Backlog (Discovered During Testing)
 
-- [ ] **`/chat` endpoint: `get_or_create_conversation` step** — On the very first message of a brand new chat, check whether a `Conversation` row already exists in the DB for the given `conversation_id`. If not, create one. This step must live inside `/chat` because that is the only place `customer_id` is known (it comes from the request). Without this, a real user's first message would crash the moment the agent tries to propose a refund (FK violation: `refund_approvals.conversation_id` references `conversations.id`, but no row was ever inserted).
-
-  > **Root cause context:** LangGraph's checkpointer and the `conversations` DB table are two separate systems that share the same `conversation_id` but are not automatically kept in sync. The checkpointer stores graph _state_; the `conversations` table stores conversation _metadata_. Anytime the agent writes a child record (`refund_approvals`, `tickets`) that FKs back to `conversations`, the parent row must already exist.
+- [x] **`/chat` endpoint: `get_or_create_conversation` step** — Implemented inside `event_stream()` in `chat.py`. On every first message, checks if a `Conversation` row exists; creates one if not. FK integrity maintained.

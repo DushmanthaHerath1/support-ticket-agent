@@ -35,6 +35,7 @@ async def chat(request: Request, body: ChatRequest) -> StreamingResponse:
         config = {
             "configurable": {
                 "thread_id":body.conversation_id,
+                "customer_id": body.customer_id,
             }
         }
 
@@ -51,9 +52,12 @@ async def chat(request: Request, body: ChatRequest) -> StreamingResponse:
 
         async for event in graph.astream_events(input_data, config=config, version="v2"):
             kind= event["event"]
+            metadata= event.get("metadata", {})
+            node= metadata.get("langgraph_node")
 
-            if kind == "on_chat_model_stream":
+            if kind == "on_chat_model_stream" and node == "tool_calling_llm":
                 chunk = event["data"]["chunk"]
+
                 if chunk.content:
                     yield f"event: token\ndata: {json.dumps({'content': chunk.content})}\n\n"
 
@@ -72,6 +76,7 @@ async def chat(request: Request, body: ChatRequest) -> StreamingResponse:
 
 @router.get("/{conversation_id}")
 async def get_conversation(conversation_id: str, request: Request) -> list[dict[str, Any]]:
+
     """
         Returns the stored message history for a conversation from the LangGraph checkpointer.
         Used by the frontend to restore chat state on page reload.
@@ -92,13 +97,14 @@ async def get_conversation(conversation_id: str, request: Request) -> list[dict[
             "type": msg.type,
             "content": msg.content
         }
-        for msg in messages if msg.content
+        for msg in messages 
+        if msg.type in ("human", "ai") and msg.content
     ]
 
 
 async def get_or_create_conversation(session:AsyncSession, conversation_id: str, customer_id: str ) -> Conversation:
     """
-        Ensures a conversation row is exists in the DB fro the given conversation_id.
+        Ensures a conversation row is exists in the DB for the given conversation_id.
         creates one if missing. Must be called before the graph runs.
     """
 

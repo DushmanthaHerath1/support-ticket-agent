@@ -22,9 +22,32 @@ from app.db.models import (
 )
 from app.db.session import async_session_factory
 
+async def _get_customer_id(
+    session,
+    config: RunnableConfig
+) -> uuid.UUID | None:
+    """Gets the customer ID from the trusted runtime config"""
+
+    configurable = config.get("configurable", {})
+
+    raw_customer_id = configurable.get("customer_id")
+
+    if raw_customer_id:
+        return (
+            uuid.UUID(str(raw_customer_id))
+            if not isinstance(raw_customer_id,uuid.UUID)
+            else raw_customer_id
+        )
+
+    thread_id = configurable.get("thread_id")
+    if thread_id and session is not None:
+        conv = await session.get(Conversation, str(thread_id))
+        if conv and conv.customer_id:
+            return conv.customer_id
+    return None
 
 @tool
-async def lookup_order(order_id: str) -> dict[str, Any]:
+async def lookup_order(order_id: str, config: RunnableConfig,) -> dict[str, Any]:
     """Looks up customer order details from the database by order ID (e.g. 'ORD-1001').
 
     Args:
@@ -37,13 +60,21 @@ async def lookup_order(order_id: str) -> dict[str, Any]:
     clean_order_id = order_id.strip()
 
     async with async_session_factory() as session:
-        result = await session.execute(select(Order).where(Order.id == clean_order_id))
+        customer_id = await _get_customer_id(session, config)
+
+        if not customer_id:
+            return{
+                "found": False,
+                "error": "Customer session could not be authenticated."
+            }
+
+        result = await session.execute(select(Order).where(Order.id == clean_order_id, Order.customer_id == customer_id,))
         order = result.scalar_one_or_none()
 
         if not order:
             return {
                 "found": False,
-                "error": f"Order '{clean_order_id}' was not found in our system. Please ask the customer to verify the order number.",
+                "error": f"Order '{clean_order_id}' was not found in your account. Please ask the customer to verify the order number.",
             }
 
         return {
@@ -58,7 +89,7 @@ async def lookup_order(order_id: str) -> dict[str, Any]:
 
 
 @tool
-async def check_refund_eligibility(order_id: str) -> dict[str, Any]:
+async def check_refund_eligibility(order_id: str, config: RunnableConfig,) -> dict[str, Any]:
     """Evaluates company refund policy against an order to determine if a refund can be initiated.
 
     Args:
@@ -70,7 +101,10 @@ async def check_refund_eligibility(order_id: str) -> dict[str, Any]:
     clean_order_id = order_id.strip()
 
     async with async_session_factory() as session:
-        result = await session.execute(select(Order).where(Order.id == clean_order_id))
+
+        customer_id = await _get_customer_id(session, config)
+
+        result = await session.execute(select(Order).where(Order.id == clean_order_id, Order.customer_id == customer_id))
         order = result.scalar_one_or_none()
 
         if not order:
@@ -135,14 +169,16 @@ async def issue_refund(
     Returns:
         The manager's final decision and processing result.
     """
-    # conversation_id is NOT an LLM-supplied argument — it's injected from the graph's
-    # own run config, so it can never be missing, malformed, or hallucinated by the model.
+
     conversation_id = config["configurable"]["thread_id"]
 
     clean_order_id = order_id.strip()
 
     async with async_session_factory() as session:
-        result = await session.execute(select(Order).where(Order.id == clean_order_id))
+
+        customer_id = await _get_customer_id(session, config)
+
+        result = await session.execute(select(Order).where(Order.id == clean_order_id, Order.customer_id == customer_id))
         order = result.scalar_one_or_none()
 
         if not order:
@@ -221,7 +257,7 @@ async def issue_refund(
 
         if is_approved:
             order_result = await session.execute(
-                select(Order).where(Order.id == clean_order_id)
+                select(Order).where(Order.id == clean_order_id, Order.customer_id == customer_id)
             )
             order = order_result.scalar_one()
             order.status = OrderStatus.CANCELLED

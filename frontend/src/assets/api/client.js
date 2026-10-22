@@ -22,7 +22,12 @@ async function apiClient(endpoint, options = {}) {
   return response.json();
 }
 
-export const getConversation = (id) => apiClient(`/chat/${id}`);
+// export const getConversation = (id) => apiClient(`/chat/${id}`);
+export const getConversation = async (id) => {
+  const data = await apiClient(`/chat/${id}`);
+
+  return data;
+};
 
 export const getPendingApprovals = () => apiClient(`/approvals/pending`);
 

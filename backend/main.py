@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     async with AsyncPostgresSaver.from_conn_string(settings.DATABASE_URL) as checkpointer:
         await checkpointer.setup()
         app.state.graph = build_graph(checkpointer)
-        
+
         try:
             yield
         finally:

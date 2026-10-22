@@ -1,4 +1,5 @@
 #stdlib
+from app.db.models import Conversation
 from datetime import datetime
 import uuid
 
@@ -69,6 +70,8 @@ async def process_approval(approval_id: str, body: ApprovalAction, request:Reque
             )
         
         conversation_id = approval.conversation_id
+        conv = await session.get(Conversation, approval.conversation_id)
+        customer_id = str(conv.customer_id)
         proposed_amount = float(approval.proposed_amount)
 
     is_approve = body.action == "approve"
@@ -79,7 +82,7 @@ async def process_approval(approval_id: str, body: ApprovalAction, request:Reque
         "notes": body.notes,
     }
 
-    config = {"configurable": {"thread_id": conversation_id}}
+    config = {"configurable": {"thread_id": conversation_id, "customer_id": customer_id}}
     await graph.ainvoke(Command(resume=resume_payload), config=config)
 
     return {

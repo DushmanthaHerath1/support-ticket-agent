@@ -8,9 +8,11 @@ class OrderContext(TypedDict, total=False):
     item_name: str
     amount: float
     status: OrderStatus
+    created_at: str
 
 
 class SupportState(MessagesState):
     customer_id: str | None
-    order_context: OrderContext | None
+    order_context: list[OrderContext]
+    missing_order_ids: list[str]
     summary: str | None
