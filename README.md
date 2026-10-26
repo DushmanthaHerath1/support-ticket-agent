@@ -19,13 +19,19 @@
 
 ---
 
+
+
+
+
+
+
 ## 📸 Product Preview
 
 <div align="center">
 
 | Customer Support Chat (SSE Streaming) | Manager Approvals (Human-in-the-Loop) | Resolved Tickets (Audit Log & KPIs) |
 | :---: | :---: | :---: |
-| ![Customer Chat Interface](assets/demo-chat.png) | ![Manager Approvals Dashboard](assets/demo-approvals.png) | ![Resolved Tickets Audit Table](assets/demo-tickets.png) |
+| ![Customer Chat Interface](https://github.com/user-attachments/assets/8010ce45-c9fa-459d-af8c-a1e230437320) | ![Manager Approvals Dashboard](https://github.com/user-attachments/assets/3d3fba91-43cd-4876-81a2-b50be7dfd70d) | ![Resolved Tickets Audit Table](https://github.com/user-attachments/assets/b5295873-d4c5-49da-878a-c9edcec682fd) |
 | *Real-time token streaming, active tool status pills & frozen approval alerts.* | *Pending refund cards with 1-click Approve, Reject, and Edit Amount modal.* | *Structured resolution records, sentiment distribution & analytics.* |
 
 </div>
