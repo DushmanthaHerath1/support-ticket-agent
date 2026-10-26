@@ -1,15 +1,18 @@
+#sirlib
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
+
+#thridpary
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Uuid
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+#local
 from app.db.session import Base
 
 
-# --- Helper Functions ---
 def _uuid() -> uuid.UUID:
     return uuid.uuid4()
 
@@ -20,9 +23,7 @@ def _now() -> datetime:
 
 # --- Enums for Clean Business Logic ---
 # This is the single canonical vocabulary. prompts.py, tools.py, and schemas.py
-# must import FROM here, not redefine their own values — that's what caused
-# the mismatch the audit found. Never add a value in a docstring or prompt
-# that isn't a member of one of these enums.
+# must import FROM here, not redefine their own values
 
 class OrderStatus(StrEnum):
     PENDING = "PENDING"          # Order placed, not yet packed
@@ -48,7 +49,7 @@ class TicketCategory(StrEnum):
     BILLING = "BILLING"
     REFUND = "REFUND"
     ORDER_CANCELLATION = "ORDER_CANCELLATION"
-    ORDER_INQUIRY = "ORDER_INQUIRY"          # NEW — status/tracking questions, no refund involved
+    ORDER_INQUIRY = "ORDER_INQUIRY"          
     TECHNICAL_SUPPORT = "TECHNICAL_SUPPORT"
     GENERAL = "GENERAL"
 
@@ -58,16 +59,13 @@ class SentimentType(StrEnum):
     NEUTRAL = "NEUTRAL"
     NEGATIVE = "NEGATIVE"
     FRUSTRATED = "FRUSTRATED"
-    # Deliberately not adding ANGRY — no clear boundary from FRUSTRATED,
-    # and a second near-duplicate value only hurts classification accuracy.
-
 
 class ResolutionType(StrEnum):
     REFUND_ISSUED = "REFUND_ISSUED"
     REFUND_REJECTED = "REFUND_REJECTED"
     ORDER_CANCELLED = "ORDER_CANCELLED"
     INQUIRY_ANSWERED = "INQUIRY_ANSWERED"
-    ESCALATED = "ESCALATED"  # NEW — agent genuinely couldn't resolve it, honest exit
+    ESCALATED = "ESCALATED"  
 
 
 # --- Database Models ---

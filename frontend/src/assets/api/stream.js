@@ -1,35 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// export async function streamChatExample(payload, onChunk, signal) {
-//   const response = await fetch(`${BASE_URL}/chat`, {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify(payload),
-//     signal,
-//   });
-
-//   if (!response.ok) {
-//     const errorData = await response.json().catch(() => null);
-//     throw new Error(
-//       errorData?.message || `HTTP error! Status: ${response.status}`,
-//     );
-//   }
-
-//   const reader = response.body.getReader();
-//   const decoder = new TextDecoder("utf-8");
-
-//   while (true) {
-//     const { done, value } = await reader.read();
-//     if (done) break;
-
-//     const textChunk = decoder.decode(value, { stream: true });
-
-//     onChunk(textChunk);
-//   }
-// }
-
 function processSseBlock(block, handlers) {
   let eventType = "messages";
   let rawData = "";

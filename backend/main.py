@@ -31,7 +31,7 @@ app = FastAPI(title="Support Agent", lifespan=lifespan)
 #CORS - allow the vite dev server to call the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[settings.FRONT_END_URL],
     allow_credentials=True, #for now
     allow_methods=["*"],
     allow_headers=["*"],

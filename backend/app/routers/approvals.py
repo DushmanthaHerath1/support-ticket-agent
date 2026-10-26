@@ -1,7 +1,8 @@
 #stdlib
 from app.db.models import Conversation
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
+from decimal import Decimal
 
 #third-party
 from fastapi import APIRouter, Request, HTTPException
@@ -9,7 +10,7 @@ from sqlalchemy import select
 from langgraph.types import Command
 
 #local
-from app.db.models import RefundApproval, RefundStatus, Order
+from app.db.models import RefundApproval, RefundStatus, Order, OrderStatus
 from app.db.session import async_session_factory
 from app.schemas import PendingApprovalResponse, ApprovalAction
 
@@ -35,7 +36,7 @@ async def get_pending_approvals() -> list[PendingApprovalResponse]:
             conversation_id=row.RefundApproval.conversation_id,
             order_id=row.RefundApproval.order_id,
             item_name=row.item_name,
-            order_amount=row.order_amount,             # <-- Pass order_amount here
+            order_amount=row.order_amount,             
             proposed_amount=row.RefundApproval.proposed_amount,
             reason=row.RefundApproval.reason,
             created_at=row.RefundApproval.decided_at
@@ -50,7 +51,7 @@ async def process_approval(approval_id: str, body: ApprovalAction, request: Requ
         Resumes the paused LangGraph HITL interrupt with the decision.
     """
     graph = request.app.state.graph
-    is_approve = body.action == "approve"             # <-- Defined upfront
+    is_approve = body.action == "approve"             
 
     async with async_session_factory() as session:
         result = await session.execute(
@@ -80,10 +81,19 @@ async def process_approval(approval_id: str, body: ApprovalAction, request: Requ
         conv = await session.get(Conversation, approval.conversation_id)
         customer_id = str(conv.customer_id)
         proposed_amount = float(approval.proposed_amount)
+        final_amount = float(body.final_amount) if is_approve and body.final_amount else proposed_amount
+
+        approval.status = RefundStatus.APPROVED if is_approve else RefundStatus.REJECTED
+        approval.final_amount = Decimal(str(final_amount)) if is_approve else None
+        approval.reason = f"{approval.reason} (Manager Notes: {body.notes})"
+        approval.decided_at = datetime.now(timezone.utc)
+        if is_approve and order:
+            order.status = OrderStatus.CANCELLED
+        await session.commit()
 
     resume_payload = {
         "approved": is_approve,
-        "final_amount": float(body.final_amount) if is_approve and body.final_amount else proposed_amount,
+        "final_amount": final_amount,
         "notes": body.notes,
     }
 

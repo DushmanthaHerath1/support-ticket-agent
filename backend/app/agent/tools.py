@@ -1,13 +1,16 @@
+#stdlib
 from datetime import datetime, timezone
 from decimal import Decimal
 import uuid
 from typing import Any
 
+#thirdparty
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import interrupt
 from sqlalchemy import select
 
+#local
 from app.db.models import (
     Conversation,
     ConversationStatus,
@@ -212,19 +215,29 @@ async def issue_refund(
                 "message": f"Refund amount ${amount:.2f} is invalid. Maximum refundable amount is ${float(order.amount):.2f}.",
             }
 
-    # Create a PENDING approval record BEFORE pausing, so the manager
-    # dashboard can see it immediately while the graph is frozen.
+
     async with async_session_factory() as session:
-        approval = RefundApproval(
-            conversation_id=conversation_id,
-            order_id=clean_order_id,
-            proposed_amount=Decimal(str(amount)),
-            reason=reason,
-            status=RefundStatus.PENDING,
+        result = await session.execute(
+            select(RefundApproval).where(
+                RefundApproval.conversation_id == conversation_id,
+                RefundApproval.order_id == clean_order_id,
+            )
         )
-        session.add(approval)
-        await session.commit()
-        approval_id = str(approval.id)
+        existing_approval = result.scalars().first()
+
+        if existing_approval:
+            approval_id = str(existing_approval.id)
+        else:
+            approval = RefundApproval(
+                conversation_id=conversation_id,
+                order_id=clean_order_id,
+                proposed_amount=Decimal(str(amount)),
+                reason=reason,
+                status=RefundStatus.PENDING,
+            )
+            session.add(approval)
+            await session.commit()
+            approval_id = str(approval.id)
 
     # Pause execution here. The approval_id goes into the interrupt payload
     decision = interrupt(
@@ -238,6 +251,7 @@ async def issue_refund(
             "description": f"Manager approval requested to refund ${amount:.2f} for order #{clean_order_id}.",
         }
     )
+
 
     #Execution resumes here after the manager acts.
     is_approved = bool(decision.get("approved", False))

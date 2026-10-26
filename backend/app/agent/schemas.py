@@ -1,6 +1,10 @@
+#stdlib
 from decimal import Decimal
+
+#thridpary
 from pydantic import BaseModel, Field, model_validator
 
+#local
 from app.db.models import TicketCategory, SentimentType, ResolutionType
 
 

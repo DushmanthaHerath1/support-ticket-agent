@@ -53,17 +53,6 @@ export default function AdminLayout() {
               <span>Tickets Audit</span>
             </NavLink>
           </nav>
-
-          {/* Quick link back to customer chat */}
-          <div>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 text-slate-400" />
-              <span>Back to Chat</span>
-            </Link>
-          </div>
         </div>
       </header>
 

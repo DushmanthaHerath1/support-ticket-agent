@@ -1,8 +1,9 @@
-# backend/app/config.py
+#stdlib
 from pathlib import Path
+
+#thridparty
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Ensure .env is located from project backend root
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None
     DATABASE_URL: str
+    FRONT_END_URL: str
     PORT: int = 8000
     
     model_config = SettingsConfigDict(

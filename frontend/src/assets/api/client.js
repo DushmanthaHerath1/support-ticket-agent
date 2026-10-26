@@ -1,6 +1,6 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-//reusable healper function
+//reusable helper function for fetch
 async function apiClient(endpoint, options = {}) {
   const config = {
     headers: {
@@ -22,7 +22,6 @@ async function apiClient(endpoint, options = {}) {
   return response.json();
 }
 
-// export const getConversation = (id) => apiClient(`/chat/${id}`);
 export const getConversation = async (id) => {
   const data = await apiClient(`/chat/${id}`);
 

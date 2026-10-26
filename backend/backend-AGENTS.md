@@ -16,15 +16,17 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # fill in GROQ_API_KEY, GEMINI_API_KEY, DATABASE_URL
 alembic upgrade head    # or equivalent migration command
-uvicorn app.main:app --reload
+uv run uvicorn main:app --reload
 ```
 
-## Project structure (target — create if missing)
+## Project structure
 ```
+main.py                # FastAPI app, CORS, lifespan & checkpointer setup
 app/
-  main.py              # FastAPI app, route registration
+  config.py            # env var loading & Pydantic settings
+  schemas.py           # HTTP API schemas (ChatRequest, ApprovalAction, TicketResponse)
   routers/
-    chat.py            # POST /chat, GET /conversations/{id}
+    chat.py            # POST /chat, GET /chat/{id}
     approvals.py       # GET /approvals/pending, POST /approvals/{id}/action
     tickets.py         # GET /tickets
   agent/
@@ -32,10 +34,13 @@ app/
     state.py           # SupportState TypedDict
     tools.py           # lookup_order, check_refund_eligibility, issue_refund, resolve_ticket
     schemas.py         # TicketResolution Pydantic model (Literal fields, not free strings)
+    prompts.py         # System instructions and summarization prompts
   db/
     models.py          # SQLAlchemy models: customers, orders, conversations, refund_approvals, tickets
-    session.py
-  config.py            # env var loading
+    session.py         # Database engine & async sessionmaker
+    seed.py            # Database seeding script with test scenarios
+alembic/               # Alembic database migrations
+tests/                 # Automated test suite
 ```
 
 ## Core design rules — don't deviate without updating the architecture doc

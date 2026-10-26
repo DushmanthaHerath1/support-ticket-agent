@@ -5,65 +5,74 @@
 
 ---
 
-## 📁 Target Project Structure
+## 📁 Current Project Structure
 
 ```
 project_1/
 ├── backend/
 │   ├── app/
 │   │   ├── agent/
-│   │   │   ├── __init__.py
 │   │   │   ├── graph.py               # StateGraph definition, compilation, checkpointer wiring
+│   │   │   ├── prompts.py             # System prompts and instructions
+│   │   │   ├── schemas.py             # TicketResolution Pydantic model with enums
 │   │   │   ├── state.py               # SupportState TypedDict
-│   │   │   ├── tools.py               # lookup_order, check_refund_eligibility, issue_refund, resolve_ticket
-│   │   │   ├── schemas.py             # TicketResolution Pydantic model with Literal enums
-│   │   │   └── prompts.py             # System prompts and instructions
+│   │   │   └── tools.py               # lookup_order, check_refund_eligibility, issue_refund, resolve_ticket
 │   │   ├── db/
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py              # SQLAlchemy models: customers, orders, conversations, refund_approvals, tickets
-│   │   │   ├── session.py             # Database engine & sessionmaker
-│   │   │   └── seed.py                # Database seeding script with realistic demo data
+│   │   │   ├── models.py              # SQLAlchemy models: customers, orders, conversations, etc.
+│   │   │   ├── seed.py                # Database seeding script with realistic demo data
+│   │   │   └── session.py             # Database engine & async sessionmaker
 │   │   ├── routers/
-│   │   │   ├── __init__.py
-│   │   │   ├── chat.py                # POST /chat (SSE streaming), GET /conversations/{id}
 │   │   │   ├── approvals.py           # GET /approvals/pending, POST /approvals/{id}/action
+│   │   │   ├── chat.py                # POST /chat (SSE streaming), GET /chat/{id}
 │   │   │   └── tickets.py             # GET /tickets
 │   │   ├── config.py                  # Pydantic Settings / Environment variables
-│   │   └── main.py                    # FastAPI application, CORS, router mounting
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── conftest.py                # Test fixtures and mock Groq client
-│   │   ├── test_agent.py              # Graph behavior, tool calls, interrupt/resume, structured exit
-│   │   └── test_api.py                # Endpoints tests (/chat, /approvals, /tickets)
-│   ├── .env.example
-│   ├── requirements.txt
-│   └── alembic/ (or init db script)
+│   │   └── schemas.py                 # HTTP API schemas (ChatRequest, ApprovalAction, TicketResponse)
+│   ├── alembic/                       # Alembic migrations directory
+│   │   ├── versions/
+│   │   └── env.py
+│   ├── tests/                         # Automated tests directory
+│   ├── .env / .env.example
+│   ├── alembic.ini
+│   ├── backend-AGENTS.md              # Backend guidelines & design rules
+│   ├── main.py                        # FastAPI application, CORS, lifespan & checkpointer setup
+│   ├── pyproject.toml / uv.lock
+│   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── api/
+│   │   ├── assets/api/
 │   │   │   ├── client.js              # REST API client (approvals, tickets, conversation history)
 │   │   │   └── stream.js              # SSE streaming handler for POST /chat
 │   │   ├── components/
 │   │   │   ├── ApprovalBanner.jsx     # Banner in chat when agent is awaiting human approval
 │   │   │   ├── ApprovalCard.jsx       # Refund approval card with Approve/Reject/Edit actions
-│   │   │   ├── MessageBubble.jsx      # Chat bubble component (user / assistant / system)
-│   │   │   ├── StatusIndicator.jsx    # Live tool-call indicator ("Looking up order #1234...")
-│   │   │   └── Navbar.jsx             # Clean tab navigation between screens
+│   │   │   ├── Badge.jsx              # Status, sentiment, and category badges
+│   │   │   ├── EmptyState.jsx         # Clean empty-state graphic & message
+│   │   │   ├── MessageBubble.jsx      # Chat bubble component with copy response action
+│   │   │   ├── Modal.jsx              # Reusable modal (Edit amount, Reject, Ticket details)
+│   │   │   ├── StatCard.jsx           # Dashboard metric card
+│   │   │   └── StatusIndecator.jsx    # Live tool-call indicator ("Looking up order records...")
+│   │   ├── hooks/
+│   │   │   ├── useApprovals.js        # Approvals data fetching, modal states & action handlers
+│   │   │   └── useTickets.js          # Tickets data fetching, metrics calculation & filtering
+│   │   ├── layouts/
+│   │   │   └── AdminLayout.jsx        # Admin navigation shell (Approvals & Tickets tabs)
 │   │   ├── screens/
-│   │   │   ├── Chat.jsx               # Screen A: Customer support streaming chat interface
 │   │   │   ├── Approvals.jsx          # Screen B: Manager pending refund approvals dashboard
-│   │   │   └── Tickets.jsx            # Screen C: Resolved tickets audit table (structured output view)
-│   │   ├── App.jsx                    # Main view container and tab state
-│   │   ├── index.css                  # Tailwind styles and custom animations
+│   │   │   ├── Chat.jsx               # Screen A: Customer support streaming chat interface
+│   │   │   └── Tickets.jsx            # Screen C: Resolved tickets audit table
+│   │   ├── utils/
+│   │   │   └── formatters.js          # Currency, date, and cent formatters
+│   │   ├── App.css
+│   │   ├── App.jsx                    # React Router configuration
+│   │   ├── index.css                  # Tailwind v4 styles & custom utilities
 │   │   └── main.jsx                   # React root entry point
-│   ├── .env.example
-│   ├── package.json
-│   ├── vite.config.js
-│   └── tailwind.config.js
+│   ├── .env / .env.example
+│   ├── frontend-AGENTS.md             # Frontend guidelines & UI specifications
+│   ├── package.json / pnpm-lock.yaml
+│   └── vite.config.js
 │
-├── backend-AGENTS.md                  # Backend guidelines & design rules
-├── frontend-AGENTS.md                 # Frontend guidelines & UI specifications
+├── AGENT.md                           # General agent guidelines
 ├── support-agent-architecture.md      # Full architecture specification
 └── todos.md                           # Master implementation checklist
 ```
@@ -146,20 +155,20 @@ project_1/
 
 ### Phase 6: Frontend Development (React + Tailwind)
 
-> **Scaffolding complete:** Vite + React 19 + Tailwind CSS v4 initialized and running. `main.jsx`, `index.css`, `vite.config.js`, `.env` all in place. `App.jsx` is currently a placeholder — the real screens below are not built yet.
+> **Frontend complete:** Vite + React 19 + Tailwind CSS v4 with full router integration, live SSE chat streaming, approvals dashboard, and tickets audit log.
 
 - [x] Build API communication utilities:
   - [x] `frontend/src/api/client.js` for REST endpoints.
   - [x] `frontend/src/api/stream.js` for SSE handling.
 - [x] Set up routing: `App.jsx` with React Router + `AdminLayout.jsx` with nested admin routes (`/admin/approvals`, `/admin/tickets`).
-- [ ] Develop reusable UI components:
-  - [ ] `MessageBubble.jsx` for user and assistant messages with markdown support.
-  - [ ] `StatusIndicator.jsx` for live tool progress updates.
-  - [ ] `ApprovalCard.jsx` with Approve, Reject, and Edit amount modal/input.
-- [ ] Build screen views:
-  - [x] **Screen A (`Chat.jsx`)**: Token streaming, approval banner, conversation history restore (localStorage). Basic functional version working.
-  - [ ] **Screen B (`Approvals.jsx`)**: Manager pending refund list with one-click Approve/Reject/Edit action handling.
-  - [ ] **Screen C (`Tickets.jsx`)**: Structured audit log table showing sentiment, resolution, and amounts.
+- [x] Develop reusable UI components:
+  - [x] `MessageBubble.jsx` for user and assistant messages with markdown support.
+  - [x] `StatusIndicator.jsx` for live tool progress updates.
+  - [x] `ApprovalCard.jsx` with Approve, Reject, and Edit amount modal/input.
+- [x] Build screen views:
+  - [x] **Screen A (`Chat.jsx`)**: Token streaming, approval banner, conversation history restore (localStorage).
+  - [x] **Screen B (`Approvals.jsx`)**: Manager pending refund list with one-click Approve/Reject/Edit action handling.
+  - [x] **Screen C (`Tickets.jsx`)**: Structured audit log table showing sentiment, resolution, and amounts.
 
 ---
 
@@ -167,7 +176,7 @@ project_1/
 
 - [x] Write `backend/app/db/seed.py` — seeding script complete (4 customers, 5 orders, 1 pending approval, 1 resolved ticket).
 - [x] Run database seeding against real database to populate sample customers and orders.
-- [ ] Test end-to-end user journey:
+- [x] Test end-to-end user journey:
   1. Customer inquires about order `#1001` -> Agent looks up order and explains status.
   2. Customer asks for refund -> Agent checks eligibility and calls `issue_refund`.
   3. Graph hits interrupt -> Chat UI displays "Waiting for approval" banner.
