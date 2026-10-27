@@ -15,7 +15,7 @@ export default function AdminLayout() {
             </div>
             <div>
               <span className="text-sm font-bold text-slate-900 block leading-tight">
-                Support Agent
+                AgentDesk
               </span>
               <span className="text-[11px] font-medium text-slate-400 block leading-tight">
                 Management Portal
